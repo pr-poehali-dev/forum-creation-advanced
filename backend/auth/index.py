@@ -130,4 +130,62 @@ def handler(event: dict, context) -> dict:
             conn.close()
         return resp(200, {"ok": True})
 
+    # Проверка admin-токена для всех admin_ action
+    def get_admin(t):
+        if not t:
+            return None
+        conn2 = get_conn()
+        c2 = conn2.cursor()
+        c2.execute(
+            f"SELECT u.id, u.role FROM {SCHEMA}.sessions s JOIN {SCHEMA}.users u ON u.id = s.user_id WHERE s.token = %s AND s.expires_at > NOW()",
+            (t,)
+        )
+        row2 = c2.fetchone()
+        conn2.close()
+        if not row2 or row2[1] != "admin":
+            return None
+        return row2[0]
+
+    admin_token = (event.get("headers") or {}).get("X-Session-Token") or (event.get("headers") or {}).get("x-session-token")
+
+    # GET ?action=admin_users
+    if method == "GET" and action == "admin_users":
+        if not get_admin(admin_token):
+            return resp(403, {"error": "Нет прав"})
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(f"SELECT id, username, role, rank, avatar, reputation, created_at FROM {SCHEMA}.users ORDER BY created_at DESC")
+        rows = cur.fetchall()
+        conn.close()
+        users = [{"id": r[0], "username": r[1], "role": r[2], "rank": r[3], "avatar": r[4], "reputation": r[5], "created_at": r[6].isoformat()} for r in rows]
+        return resp(200, {"users": users})
+
+    # POST ?action=admin_set_role
+    if method == "POST" and action == "admin_set_role":
+        if not get_admin(admin_token):
+            return resp(403, {"error": "Нет прав"})
+        user_id = body.get("user_id")
+        role = body.get("role")
+        if role not in ("admin", "member"):
+            return resp(400, {"error": "Недопустимая роль"})
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(f"UPDATE {SCHEMA}.users SET role = %s WHERE id = %s AND username != 'admin'", (role, user_id))
+        conn.commit()
+        conn.close()
+        return resp(200, {"ok": True})
+
+    # POST ?action=admin_delete_user
+    if method == "POST" and action == "admin_delete_user":
+        if not get_admin(admin_token):
+            return resp(403, {"error": "Нет прав"})
+        user_id = body.get("user_id")
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(f"UPDATE {SCHEMA}.sessions SET expires_at = NOW() WHERE user_id = %s", (user_id,))
+        cur.execute(f"DELETE FROM {SCHEMA}.users WHERE id = %s AND username != 'admin'", (user_id,))
+        conn.commit()
+        conn.close()
+        return resp(200, {"ok": True})
+
     return resp(400, {"error": "Укажи параметр action"})
