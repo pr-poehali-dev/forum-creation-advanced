@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 
 const CATEGORIES = [
@@ -144,6 +145,7 @@ export default function Index() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [likedTopics, setLikedTopics] = useState<Set<number>>(new Set());
 
+  const navigate = useNavigate();
   const filtered = activeCategory === "all"
     ? TOPICS
     : TOPICS.filter(t => t.category === activeCategory);
@@ -199,7 +201,10 @@ export default function Index() {
               <Icon name="Bell" size={18} className="text-muted-foreground" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-neon-purple rounded-full" />
             </button>
-            <button className="grad-primary text-white text-sm font-rubik font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity glow-purple">
+            <button
+              onClick={() => navigate("/auth")}
+              className="grad-primary text-white text-sm font-rubik font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity glow-purple"
+            >
               Войти
             </button>
           </div>
