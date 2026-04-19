@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
+
+const AUTH_URL = "https://functions.poehali.dev/99f13565-043d-4a37-a932-d20977116e70";
 
 interface User { id: number; username: string; role: string; rank: string; avatar: string; }
 
@@ -9,6 +11,14 @@ export default function Index() {
   const [user] = useState<User | null>(() => {
     try { return JSON.parse(localStorage.getItem("nexus_user") || "null"); } catch { return null; }
   });
+  const [maintenance, setMaintenance] = useState<{ is_active: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    fetch(`${AUTH_URL}?action=maintenance`)
+      .then(r => r.json())
+      .then(d => setMaintenance(d))
+      .catch(() => null);
+  }, []);
 
   const logout = () => {
     localStorage.removeItem("nexus_token");
@@ -18,6 +28,21 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
+
+      {/* Maintenance banner */}
+      {maintenance?.is_active && user?.role !== "admin" && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-background/95 backdrop-blur-xl">
+          <div className="text-center max-w-md px-6">
+            <div className="text-6xl mb-6">🔧</div>
+            <h1 className="font-rajdhani font-bold text-4xl text-orange-400 mb-3">ТЕХРАБОТЫ</h1>
+            <p className="text-muted-foreground font-rubik text-lg mb-6">{maintenance.message}</p>
+            <div className="flex items-center justify-center gap-2 text-orange-400 text-sm font-rubik">
+              <Icon name="Loader" size={16} className="animate-spin" />
+              Скоро вернёмся...
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
