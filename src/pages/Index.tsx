@@ -141,9 +141,14 @@ function formatNumber(n: number) {
   return n.toString();
 }
 
+interface User { id: number; username: string; role: string; rank: string; avatar: string; }
+
 export default function Index() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [likedTopics, setLikedTopics] = useState<Set<number>>(new Set());
+  const [user] = useState<User | null>(() => {
+    try { return JSON.parse(localStorage.getItem("nexus_user") || "null"); } catch { return null; }
+  });
 
   const navigate = useNavigate();
   const filtered = activeCategory === "all"
@@ -201,12 +206,22 @@ export default function Index() {
               <Icon name="Bell" size={18} className="text-muted-foreground" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-neon-purple rounded-full" />
             </button>
-            <button
-              onClick={() => navigate("/auth")}
-              className="grad-primary text-white text-sm font-rubik font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity glow-purple"
-            >
-              Войти
-            </button>
+            {user ? (
+              <div className="flex items-center gap-2 bg-secondary/50 border border-border rounded-lg px-3 py-1.5">
+                <span className="text-lg">{user.avatar}</span>
+                <div>
+                  <div className="text-foreground text-xs font-rubik font-medium leading-none">{user.username}</div>
+                  <div className="text-neon-purple text-xs font-rubik leading-none mt-0.5">{user.rank}</div>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => navigate("/auth")}
+                className="grad-primary text-white text-sm font-rubik font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity glow-purple"
+              >
+                Войти
+              </button>
+            )}
           </div>
         </div>
       </nav>
